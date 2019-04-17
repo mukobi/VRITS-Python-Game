@@ -1,0 +1,8 @@
+{
+    "python.linting.pylintEnabled": true,
+    "python.pythonPath": "C:\\Windows\\py",
+    "python.linting.enabled": true,
+    "python.linting.pylintArgs": [
+        "--extension-pkg-whitelist=pygame"
+    ]
+}
