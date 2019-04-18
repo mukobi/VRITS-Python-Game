@@ -257,6 +257,8 @@ class GameData:
     score: int
     player: PlayerActor
     enemies: List[EnemyActor]
+    font_large: pygame.font
+    font_small: pygame.font
 
 
 def quit_game():
@@ -266,8 +268,6 @@ def quit_game():
 
 def title_screen_loop(game_data):
     """Interaction loop for the title screen"""
-    font_large = pygame.font.Font(FONT_PATH, FONT_SIZE)
-    font_small = pygame.font.Font(FONT_PATH, int(FONT_SIZE * 2 / 3))
     while True:
         # spawn enemies
         frames_per_enemy_spawn = int(FRAMES_PER_ENEMY_SPAWN_INIT - (game_data.score / 2))
@@ -283,13 +283,12 @@ def title_screen_loop(game_data):
             enemy.sprite_data.fill_color = [255, 255, 255]
             enemy.draw()
 
-        text0 = font_large.render(
-            "Polygonner!", True, [200, 200, 200])
-        text1 = font_small.render(
+        text0 = game_data.font_large.render("Polygonner!", True, [200, 200, 200])
+        text1 = game_data.font_small.render(
             "Eat the smaller polygons to grow larger", True, [100, 255, 100])
-        text2 = font_small.render(
+        text2 = game_data.font_small.render(
             "Avoid the larger ones, or you'll be a gonner", True, [255, 100, 100])
-        text3 = font_small.render(
+        text3 = game_data.font_small.render(
             "Arrow keys to move, Enter to start, Esc to quit", True, [200, 200, 200])
         game_data.screen.blit(text0,
                               ((WINDOW_WIDTH - text0.get_width()) / 2,
@@ -320,7 +319,6 @@ def title_screen_loop(game_data):
 
 def gameplay_loop(game_data):
     """Main loop for playing the game"""
-    font_large = pygame.font.Font(FONT_PATH, FONT_SIZE)
     game_is_playing = True
     while True:
         # spawn enemies
@@ -353,8 +351,26 @@ def gameplay_loop(game_data):
             for enemy in game_data.enemies:
                 enemy.move()
                 enemy.draw()
-            
-        score_text = font_large.render(
+            game_data.window_tint = [0, 0, 0]
+            text0 = game_data.font_large.render("Game Over!", True, [255, 100, 100])
+            text1 = game_data.font_small.render(
+                "Enter to restart, Esc to quit", True, [100, 255, 100])
+
+            game_data.screen.blit(text0,
+                                  ((WINDOW_WIDTH - text0.get_width()) / 2,
+                                   (WINDOW_HEIGHT - 2 * text0.get_height()) / 2))
+            game_data.screen.blit(text1,
+                                  ((WINDOW_WIDTH - text1.get_width()) / 2,
+                                   (WINDOW_HEIGHT + 0 * text1.get_height()) / 2))
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_RETURN]:
+                game_data = initialize_game_data()
+                game_is_playing = True
+            if keys[pygame.K_ESCAPE]:
+                quit_game()  # quit the game
+
+        score_text = game_data.font_large.render(
             "Score: {}".format(game_data.score), True, game_data.font_color)
         game_data.screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
 
@@ -375,6 +391,8 @@ def initialize_game_data():
         window_tint=[35, 15, 70],
         font_color=[100, 100, 240],
         score=0,
+        font_large=pygame.font.Font(FONT_PATH, FONT_SIZE),
+        font_small=pygame.font.Font(FONT_PATH, int(FONT_SIZE * 2 / 3)),
         enemies=[],
         player=PlayerActor(
             MoveData(speed=[0, 0], position=[WINDOW_WIDTH/2, WINDOW_HEIGHT/2],
