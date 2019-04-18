@@ -11,7 +11,6 @@ import random
 from dataclasses import dataclass, field
 from typing import List
 import os
-import time
 import pygame
 
 # constants
@@ -251,48 +250,6 @@ class EnemyActor(PolygonActor):
             self.sprite_data.fill_color = [0, 255 * e_size / p_size, ENEMY_SMALL_COLOR_CODE]
 
 
-class Explosion():
-    """For making explosions in collision"""
-    def __init__(self, move_data, sprite_data, n_particles, screen, duration, max_speed):
-        self.move_data = move_data
-        self.sprite_data = sprite_data
-        self.screen = screen
-        self.start_time = time.time()
-        self.duration = duration
-        self.max_speed = max_speed
-        self.particles = []  # list of PolygonActors
-        for i in range(0, n_particles):  # number of particles
-            speed = [max_speed * (random.random() * 2 - 1),
-                        max_speed * (random.random() * 2 - 1)]
-            friction = 0.8
-            particle = PolygonActor(
-                MoveData(
-                    speed=speed,
-                    position=self.move_data.position,
-                    acceleration=self.move_data.acceleration,
-                    friction=friction
-                ),
-                SpriteData(size=1, num_sides=3, fill_color=self.sprite_data.fill_color),
-                screen
-            )
-            self.particles.append(particle)
-
-    def update(self):
-        """Check time, return if still exploding"""
-        for particle in self.particles:
-            particle.move()
-        if time.time() > self.start_time + self.duration:
-            self.particles = []
-            return False
-        return True
-
-    def draw(self):
-        """Draws all particles"""
-        for particle in self.particles:
-            particle.draw()
-
-
-
 @dataclass
 class GameData:
     """Data class to encapsulate information about the state of the game"""
@@ -307,7 +264,6 @@ class GameData:
     font_small: pygame.font
     crunch_sound: pygame.mixer.Sound
     boom_sound: pygame.mixer.Sound
-    explosions: List[Explosion]
 
 
 def quit_game():
@@ -381,11 +337,6 @@ def gameplay_loop(game_data):
 
         if game_is_playing:
             # move and draw player
-            for explosion in game_data.explosions:
-                explosion.update()
-                explosion.draw()
-                # if not explosion.update():
-                #     game_data.explosions.remove(explosion)
             game_data.player.move()
             game_data.player.draw()
             for enemy in game_data.enemies:
@@ -397,33 +348,12 @@ def gameplay_loop(game_data):
             if collision == "DEAD":
                 game_is_playing = False
                 game_data.boom_sound.play()
-                game_data.explosions.append(
-                    Explosion(
-                        game_data.player.move_data,
-                        game_data.player.sprite_data,
-                        32,
-                        game_data.screen,
-                        1000,
-                        max_speed=10
-                    )
-                )
-
             elif collision == "EAT":
                 game_data.crunch_sound.play()
                 # shuffle screen and font color
                 game_data.window_tint = game_data.window_tint[1:] + [game_data.window_tint[0]]
                 game_data.font_color = game_data.font_color[1:] + [game_data.font_color[0]]
                 game_data.score += 1
-                game_data.explosions.append(
-                    Explosion(
-                        game_data.player.move_data,
-                        game_data.player.sprite_data,
-                        32,
-                        game_data.screen,
-                        1000,
-                        max_speed=10
-                    )
-                )
         else:
             # game is over, show game over screen
             for enemy in game_data.enemies:
@@ -482,8 +412,7 @@ def initialize_game_data():
             screen
         ),
         crunch_sound=pygame.mixer.Sound(CRUNCH_PATH),
-        boom_sound=pygame.mixer.Sound(BOOM_PATH),
-        explosions=[]
+        boom_sound=pygame.mixer.Sound(BOOM_PATH)
     )
     game_data.crunch_sound.set_volume(0.45)
     return game_data
