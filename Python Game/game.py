@@ -23,6 +23,7 @@ PLAYER_INIT_FRICTION = 0.9
 PLAYER_SPEED_LIMIT = 12
 FRAMES_PER_ENEMY_SPAWN = 50
 ENEMY_SIZE_SCALE = 3
+ENEMY_ANGLE_VARIANCE = 0.8
 ENEMY_SPEED_MIN = 20
 ENEMY_SPEED_MAX = 200
 ENEMY_BIG_COLOR_CODE = 4
@@ -202,16 +203,16 @@ class EnemyActor(PolygonActor):
         edge = random.randint(0, 3)
         if edge == 0: # Left Edge
             pos = [-size, random.random() * WINDOW_HEIGHT]
-            speed = [1, 0]
+            speed = [1, ENEMY_ANGLE_VARIANCE * (random.random() * 2 - 1)]
         elif edge == 1:  # Right Edge
             pos = [WINDOW_WIDTH + size, random.random() * WINDOW_HEIGHT]
-            speed = [-1, 0]
+            speed = [-1, ENEMY_ANGLE_VARIANCE * (random.random() * 2 - 1)]
         elif edge == 2: # Top Edge
             pos = [random.random() * WINDOW_WIDTH, -size]
-            speed = [0, 1]
+            speed = [ENEMY_ANGLE_VARIANCE * (random.random() * 2 - 1), 1]
         elif edge == 3: # Bottom Edge
             pos = [random.random() * WINDOW_WIDTH, WINDOW_HEIGHT + size]
-            speed = [0, -1]
+            speed = [ENEMY_ANGLE_VARIANCE * (random.random() * 2 - 1), -1]
 
         rand_speed = random.randint(ENEMY_SPEED_MIN, ENEMY_SPEED_MAX)/FRAMERATE
         speed[0] *= rand_speed
