@@ -381,7 +381,7 @@ def gameplay_loop(game_data):
                 quit_game()  # quit the game
 
         score_text = game_data.font_large.render(
-            "Score: {}".format(game_data.score), True, game_data.font_color)
+            "Score: {}00".format(game_data.score), True, game_data.font_color)
         game_data.screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
 
         pygame.display.flip()  # clear screen
