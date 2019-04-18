@@ -9,7 +9,7 @@ from math import sqrt, sin, cos
 import sys
 import random
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, ClassVar
 import os
 import pygame
 
@@ -246,63 +246,83 @@ class EnemyActor(PolygonActor):
             # enemy is smaller than player, make shade of green
             self.sprite_data.fill_color = [0, 255 * e_size / p_size, ENEMY_SMALL_COLOR_CODE]
 
-def main():
-    """Main game execution function"""
-    # set up game and variables
-    pygame.init()
-    clock = pygame.time.Clock()
-    window_size = WINDOW_WIDTH, WINDOW_HEIGHT
-    screen = pygame.display.set_mode(window_size)
-    window_tint = [15, 70, 35]  # tint screen a little
-    font_color = [100, 240, 200]  # contrast window tine
-    font = pygame.font.Font(FONT_PATH, FONT_SIZE)
-    score = 0
 
-    player = PlayerActor(
-        MoveData(speed=[0, 0], position=[WINDOW_WIDTH/2, WINDOW_HEIGHT/2],
-                 acceleration=[0, 0], friction=PLAYER_INIT_FRICTION),
-        SpriteData(size=PLAYER_INIT_SIZE, num_sides=PLAYER_INIT_SIDES,
-                   outline_color=[21, 121, 212], fill_color=[21, 121, 212]),
-        screen
-    )
-    enemies = []
+@dataclass
+class GameData:
+    """Data class to encapsulate information about the state of the game"""
+    clock: pygame.time.Clock
+    screen: pygame.surface
+    window_tint: List[int]
+    font_color: List[int]
+    font: pygame.font
+    score: int
+    player: PlayerActor
+    enemies: List[EnemyActor]
 
-    # main game loop
+def gameplay_loop(game_data):
+    """Main loop for playing the game"""
     game_is_playing = True
     while game_is_playing:
         # spawn enemies
-        frames_per_enemy_spawn = int(FRAMES_PER_ENEMY_SPAWN_INIT - (score / 2))
+        frames_per_enemy_spawn = int(FRAMES_PER_ENEMY_SPAWN_INIT - (game_data.score / 2))
         if frames_per_enemy_spawn < FRAMES_PER_ENEMY_SPAWN_MIN:
             frames_per_enemy_spawn = frames_per_enemy_spawn
         if random.randint(1, frames_per_enemy_spawn) == 1:
-            enemies.append(EnemyActor(player, screen))
+            game_data.enemies.append(EnemyActor(game_data.player, game_data.screen))
 
         # move and draw game objects
-        screen.fill(window_tint)
-        player.move()
-        player.draw()
-        for enemy in enemies:
+        game_data.screen.fill(game_data.window_tint)
+        game_data.player.move()
+        game_data.player.draw()
+        for enemy in game_data.enemies:
             enemy.move()
             enemy.draw()
-        score_text = font.render("Score: {}".format(score), True, font_color)
-        screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
+        score_text = game_data.font.render(
+            "Score: {}".format(game_data.score), True, game_data.font_color)
+        game_data.screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
 
         # collision detection
-        collision = player.check_collision(enemies)
+        collision = game_data.player.check_collision(game_data.enemies)
         game_is_playing = collision != "DEAD"
         if collision == "EAT":
             # shuffle screen and font color
-            window_tint = window_tint[1:] + [window_tint[0]]
-            font_color = font_color[1:] + [font_color[0]]
-            score += 1
+            game_data.window_tint = game_data.window_tint[1:] + [game_data.window_tint[0]]
+            game_data.font_color = game_data.font_color[1:] + [game_data.font_color[0]]
+            game_data.score += 1
 
         pygame.display.flip()  # clear screen
-        clock.tick(FRAMERATE)  # make sure game runs at correct framerate
+        game_data.clock.tick(FRAMERATE)  # make sure game runs at correct framerate
 
         # handle quit event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_is_playing = False
+
+def main():
+    """Main game execution function"""
+    # set up game and variables
+    pygame.init()
+    window_size = WINDOW_WIDTH, WINDOW_HEIGHT
+    screen = pygame.display.set_mode(window_size)
+    game_data = GameData(
+        clock=pygame.time.Clock(),
+        screen=screen,
+        window_tint=[15, 70, 35],  # tint screen a little
+        font_color=[100, 240, 200],  # contrast window tine
+        font=pygame.font.Font(FONT_PATH, FONT_SIZE),
+        score=0,
+        enemies=[],
+        player=PlayerActor(
+            MoveData(speed=[0, 0], position=[WINDOW_WIDTH/2, WINDOW_HEIGHT/2],
+                     acceleration=[0, 0], friction=PLAYER_INIT_FRICTION),
+            SpriteData(size=PLAYER_INIT_SIZE, num_sides=PLAYER_INIT_SIDES,
+                       outline_color=[21, 121, 212], fill_color=[21, 121, 212]),
+            screen
+        )
+    )
+
+
+    gameplay_loop(game_data)
 
     print("Game over")
     pygame.quit()
