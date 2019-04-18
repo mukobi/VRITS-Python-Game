@@ -32,8 +32,10 @@ ENEMY_BIG_COLOR_CODE = 4
 ENEMY_SMALL_COLOR_CODE = 3
 POLY_ROTATION_MAX = 1.0 * math.pi
 POLY_MAX_SIDES = 10
-FONT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/fonts/zorque.ttf"
 FONT_SIZE = 32
+FONT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/fonts/zorque.ttf"
+CRUNCH_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/sounds/crunch.wav"
+BOOM_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/sounds/boom.wav"
 
 
 @dataclass
@@ -259,6 +261,8 @@ class GameData:
     enemies: List[EnemyActor]
     font_large: pygame.font
     font_small: pygame.font
+    crunch_sound: pygame.mixer.Sound
+    boom_sound: pygame.mixer.Sound
 
 
 def quit_game():
@@ -340,8 +344,11 @@ def gameplay_loop(game_data):
 
             # collision detection
             collision = game_data.player.check_collision(game_data.enemies)
-            game_is_playing = collision != "DEAD"
-            if collision == "EAT":
+            if collision == "DEAD":
+                game_is_playing = False
+                game_data.boom_sound.play()
+            elif collision == "EAT":
+                game_data.crunch_sound.play()
                 # shuffle screen and font color
                 game_data.window_tint = game_data.window_tint[1:] + [game_data.window_tint[0]]
                 game_data.font_color = game_data.font_color[1:] + [game_data.font_color[0]]
@@ -385,7 +392,7 @@ def initialize_game_data():
     """Returns an initialized GameData object"""
     window_size = WINDOW_WIDTH, WINDOW_HEIGHT
     screen = pygame.display.set_mode(window_size)
-    return GameData(
+    game_data = GameData(
         clock=pygame.time.Clock(),
         screen=screen,
         window_tint=[35, 15, 70],
@@ -400,12 +407,18 @@ def initialize_game_data():
             SpriteData(size=PLAYER_INIT_SIZE, num_sides=PLAYER_INIT_SIDES,
                        outline_color=[21, 121, 212], fill_color=[21, 121, 212]),
             screen
-        )
+        ),
+        crunch_sound=pygame.mixer.Sound(CRUNCH_PATH),
+        boom_sound=pygame.mixer.Sound(BOOM_PATH)
     )
+    game_data.crunch_sound.set_volume(0.7)
+    return game_data
 
 def main():
     """Main game execution function"""
     # set up game and variables
+    pygame.mixer.pre_init(44100, -16, 2, 2048)
+    pygame.mixer.init()
     pygame.init()
     game_data = initialize_game_data()
     pygame.display.set_caption("Polygonner!")
