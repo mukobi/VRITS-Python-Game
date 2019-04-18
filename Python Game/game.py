@@ -34,8 +34,9 @@ POLY_ROTATION_MAX = 1.0 * math.pi
 POLY_MAX_SIDES = 10
 FONT_SIZE = 32
 FONT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/fonts/zorque.ttf"
-CRUNCH_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/sounds/crunch.wav"
 BOOM_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/sounds/boom.wav"
+CRUNCH_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/sounds/crunch.wav"
+MUSIC_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/sounds/music.ogg"
 
 
 @dataclass
@@ -372,8 +373,10 @@ def gameplay_loop(game_data):
 
             keys = pygame.key.get_pressed()
             if keys[pygame.K_RETURN]:
+                # restart the game
                 game_data = initialize_game_data()
                 game_is_playing = True
+                pygame.mixer.music.rewind()
             if keys[pygame.K_ESCAPE]:
                 quit_game()  # quit the game
 
@@ -411,7 +414,7 @@ def initialize_game_data():
         crunch_sound=pygame.mixer.Sound(CRUNCH_PATH),
         boom_sound=pygame.mixer.Sound(BOOM_PATH)
     )
-    game_data.crunch_sound.set_volume(0.7)
+    game_data.crunch_sound.set_volume(0.45)
     return game_data
 
 def main():
@@ -422,6 +425,9 @@ def main():
     pygame.init()
     game_data = initialize_game_data()
     pygame.display.set_caption("Polygonner!")
+
+    pygame.mixer.music.load(MUSIC_PATH)
+    pygame.mixer.music.play(-1)
 
     title_screen_loop(game_data)
 
