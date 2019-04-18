@@ -17,7 +17,15 @@ FRAMERATE = 60
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 PLAYER_ACC_LIMIT = 0.4
+PLAYER_INIT_SIZE = 6
+PLAYER_INIT_SIDES = 6
+PLAYER_INIT_FRICTION = 0.9
+PLAYER_SPEED_LIMIT = 12
 FRAMES_PER_ENEMY_SPAWN = 50
+ENEMY_MAX_SIZE_SCALE = 3
+ENEMY_MAX_SIDES = 12
+ENEMY_SPEED_MIN = 20
+ENEMY_SPEED_MAX = 200
 
 @dataclass
 class MoveData:
@@ -42,8 +50,7 @@ def length(vec):
     return sqrt(vec[0] * vec[0] + vec[1] * vec[1])
 
 class Actor:
-    """Parent class for game actors"""
-    # TODO add rotation
+    """Parent class for all game actors"""
     def __init__(self, move_data):
         self.move_data = move_data
 
@@ -72,8 +79,8 @@ class Actor:
 
 
 class PolygonActor(Actor):
-    """Class for all enemies"""
-
+    """Parent class defining polygon geometry"""
+    # TODO add rotation
     def __init__(self, move_data, sprite_data, screen):
         super().__init__(move_data)
         self.sprite_data = sprite_data
@@ -107,8 +114,7 @@ class PolygonActor(Actor):
 
 
 class PlayerActor(PolygonActor):
-    """Class for player character"""
-
+    """Defines player behavior"""
     def accelerate(self):
         keys = pygame.key.get_pressed()
         self.move_data.acceleration = [0.0, 0.0]
@@ -127,11 +133,10 @@ class PlayerActor(PolygonActor):
             self.move_data.acceleration[1] *= PLAYER_ACC_LIMIT / acc_mag
 
     def modify_speed(self):
-        speed_limit = 8
         speed_mag = length(self.move_data.speed)
-        if speed_mag > speed_limit:
-            self.move_data.speed[0] = self.move_data.speed[0] / speed_mag * speed_limit
-            self.move_data.speed[1] = self.move_data.speed[1] / speed_mag * speed_limit
+        if speed_mag > PLAYER_SPEED_LIMIT:
+            self.move_data.speed[0] = self.move_data.speed[0] / speed_mag * PLAYER_SPEED_LIMIT
+            self.move_data.speed[1] = self.move_data.speed[1] / speed_mag * PLAYER_SPEED_LIMIT
 
         super().modify_speed()
 
@@ -152,14 +157,13 @@ class PlayerActor(PolygonActor):
 
 
 class EnemyActor(PolygonActor):
-    """Class for all enemies"""
-
+    """Defines enemy behavior"""
     def __init__(self, player_ref, screen):
         """Spawn in enemy from a random edge witg random speed"""
         pos = [0, 0]
         spd = [0, 0]
-        size = random.randint(1, 40)
-        # choose a random edge
+        size = random.randint(1, player_ref.sprite_data.size * ENEMY_MAX_SIZE_SCALE)
+        # choose a random edge to spawn from
         edge = random.randint(0, 3)
         if edge == 0: # Left Edge
             pos = [-size, random.random() * WINDOW_HEIGHT]
@@ -174,12 +178,13 @@ class EnemyActor(PolygonActor):
             pos = [random.random() * WINDOW_WIDTH, WINDOW_HEIGHT + size]
             spd = [0, -1]
 
-        rand_speed = random.randint(20, 100)/60
+        rand_speed = random.randint(ENEMY_SPEED_MIN, ENEMY_SPEED_MAX)/FRAMERATE
         spd[0] *= rand_speed
         spd[1] *= rand_speed
+        num_sides = random.randint(3, ENEMY_MAX_SIDES)
         super().__init__(
             MoveData(spd, pos, [0.0, 0.0], 1),
-            SpriteData(size, 5, fill_color=[0, 0, 0]), screen
+            SpriteData(size, num_sides, fill_color=[0, 0, 0]), screen
         )
         self.player_ref = player_ref
         self.update_color()
@@ -203,12 +208,12 @@ def check_collision(player, enemies):
             if player.sprite_data.size > enemy.sprite_data.size:
                 enemies.remove(enemy)
                 return "EAT"
-            else:
-                return "DEAD"
+            return "DEAD"
     return "NONE"
 
 def main():
-    """Main game runtime function"""
+    """Main game execution function"""
+    # set up game and variables
     pygame.init()
     clock = pygame.time.Clock()
     window_size = WINDOW_WIDTH, WINDOW_HEIGHT
@@ -216,8 +221,9 @@ def main():
     frames_per_enemy_spawn = FRAMES_PER_ENEMY_SPAWN
 
     player = PlayerActor(
-        MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], friction=0.9),
-        SpriteData(size=8, num_sides=8, fill_color=[0, 178, 238]),
+        MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], friction=PLAYER_INIT_FRICTION),
+        SpriteData(size=PLAYER_INIT_SIZE, num_sides=PLAYER_INIT_SIDES,
+                   outline_color=[0, 0, 212], fill_color=[0, 0, 212]),
         screen
     )
     enemies = []
@@ -234,7 +240,7 @@ def main():
             enemies.append(EnemyActor(player, screen))
 
         # move and draw actors
-        screen.fill([10, 0, 0])
+        screen.fill([0, 0, 40])  # tint screen a little blue
         player.move()
         player.draw()
         for enemy in enemies:
