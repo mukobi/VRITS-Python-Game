@@ -155,7 +155,8 @@ class PlayerActor(PolygonActor):
     def check_collision(self, enemies):
         """Checks for collisions between player and enemies
         Returns a string describing the resulting collision info"""
-        for vert in self.sprite_data.verts:
+        # check all verts and center to see if on enemy pixel
+        for vert in self.sprite_data.verts + [self.move_data.position]:
             blue_code = self.screen.get_at((int(vert[0]), int(vert[1])))[2]
             if blue_code == ENEMY_BIG_COLOR_CODE:
                 # hit a bigger enemy
@@ -187,7 +188,7 @@ class EnemyActor(PolygonActor):
         """Spawn in enemy from a random edge witg random speed"""
         pos = [0, 0]
         speed = [0, 0]
-        size = random.randint(1, player_ref.sprite_data.size * ENEMY_MAX_SIZE_SCALE)
+        size = random.randint(4, player_ref.sprite_data.size * ENEMY_MAX_SIZE_SCALE)
         # choose a random edge to spawn from
         edge = random.randint(0, 3)
         if edge == 0: # Left Edge
