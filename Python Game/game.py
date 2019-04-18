@@ -25,6 +25,8 @@ FRAMES_PER_ENEMY_SPAWN = 50
 ENEMY_MAX_SIZE_SCALE = 3
 ENEMY_SPEED_MIN = 20
 ENEMY_SPEED_MAX = 200
+ENEMY_BIG_COLOR_CODE = 4
+ENEMY_SMALL_COLOR_CODE = 3
 POLY_ROTATION_MAX = 1.0 * math.pi
 POLY_MAX_SIDES = 10
 
@@ -111,13 +113,6 @@ class PolygonActor(Actor):
         pygame.draw.aalines(
             self.screen, self.sprite_data.outline_color, True, self.sprite_data.verts)
 
-    def collides_with(self, other_polygon_actor):
-        """Test if colliding with another polygon actor"""
-        x_diff = self.move_data.position[0] - other_polygon_actor.move_data.position[0]
-        y_diff = self.move_data.position[1] - other_polygon_actor.move_data.position[1]
-        dist = sqrt(x_diff*x_diff + y_diff*y_diff)
-        return dist < self.sprite_data.size + other_polygon_actor.sprite_data.size
-
 
 class PlayerActor(PolygonActor):
     """Defines player behavior"""
@@ -157,9 +152,33 @@ class PlayerActor(PolygonActor):
         if self.move_data.position[1] > WINDOW_HEIGHT - self.sprite_data.size:
             self.move_data.position[1] = WINDOW_HEIGHT - self.sprite_data.size
 
-    def eat_enemy(self):
-        """Grow and change the player when eating a smaller enemy"""
-        self.sprite_data.size += 1
+    def check_collision(self, enemies):
+        """Checks for collisions between player and enemies
+        Returns a string describing the resulting collision info"""
+        for vert in self.sprite_data.verts:
+            blue_code = self.screen.get_at((int(vert[0]), int(vert[1])))[2]
+            if blue_code == ENEMY_BIG_COLOR_CODE:
+                # hit a bigger enemy
+                return "DEAD"
+            if blue_code == ENEMY_SMALL_COLOR_CODE:
+                # hit a smaller enemy, figure out which one
+                closest_enemy = enemies[0]
+                min_square_dist = sys.maxsize
+                for enemy in enemies:
+                    enemy.update_color()
+                    x_diff = enemy.move_data.position[0] - vert[0]
+                    y_diff = enemy.move_data.position[1] - vert[1]
+                    square_dist = x_diff * x_diff + y_diff * y_diff
+                    if square_dist < min_square_dist:
+                        closest_enemy = enemy
+                        min_square_dist = square_dist
+                # assume rotation and sides of eaten enemy
+                self.move_data.rotation_rate = closest_enemy.move_data.rotation_rate
+                self.sprite_data.num_sides = closest_enemy.sprite_data.num_sides
+                self.sprite_data.size += 1  # grow player
+                enemies.remove(closest_enemy)
+                return "EAT"
+        return "NONE"
 
 
 class EnemyActor(PolygonActor):
@@ -203,28 +222,13 @@ class EnemyActor(PolygonActor):
         """Updates the enemy color based on its size relative to the player"""
         p_size = self.player_ref.sprite_data.size
         e_size = self.sprite_data.size
-        if e_size >= p_size:
+        # set appropriate color and embed code into blue value of bigger or smaller
+        if e_size > p_size:
             # enemy is bigger than player, make shade of red
-            self.sprite_data.fill_color = [255 * p_size / e_size, 0, 0]
+            self.sprite_data.fill_color = [255 * p_size / e_size, 0, ENEMY_BIG_COLOR_CODE]
         else:
             # enemy is smaller than player, make shade of green
-            self.sprite_data.fill_color = [0, 255 * e_size / p_size, 0]
-
-def check_collision(player, enemies):
-    """Checks for collisions between player and enemies
-    Returns a string describing the resulting collision info"""
-    for enemy in enemies:
-        if player.collides_with(enemy):
-            if player.sprite_data.size > enemy.sprite_data.size:
-                player.move_data.rotation_rate = enemy.move_data.rotation_rate
-                player.sprite_data.num_sides = enemy.sprite_data.num_sides
-                enemies.remove(enemy)
-                player.eat_enemy()
-                for other_enemy in enemies:
-                    other_enemy.update_color()
-                return "EAT"
-            return "DEAD"
-    return "NONE"
+            self.sprite_data.fill_color = [0, 255 * e_size / p_size, ENEMY_SMALL_COLOR_CODE]
 
 def main():
     """Main game execution function"""
@@ -264,7 +268,7 @@ def main():
             enemy.draw()
 
         # collision detection
-        collision = check_collision(player, enemies)
+        collision = player.check_collision(enemies)
         game_is_playing = collision != "DEAD"
         if collision == "EAT":
             # TODO track score
