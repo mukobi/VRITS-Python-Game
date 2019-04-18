@@ -52,7 +52,7 @@ class SpriteData:
     verts: List[float] = field(default_factory=list)
 
 def length(vec):
-    """Get the distance between 2 2D vectors"""
+    """Get the length of a 2D vector"""
     return sqrt(vec[0] * vec[0] + vec[1] * vec[1])
 
 class Actor:
@@ -84,7 +84,7 @@ class Actor:
         self.move_data.rotation %= 2.0 * math.pi
 
     def draw(self):
-        """Draw the actor"""
+        """Must Draw the actor"""
 
 
 class PolygonActor(Actor):
@@ -155,9 +155,16 @@ class PlayerActor(PolygonActor):
     def check_collision(self, enemies):
         """Checks for collisions between player and enemies
         Returns a string describing the resulting collision info"""
-        # check all verts and center to see if on enemy pixel
-        for vert in self.sprite_data.verts + [self.move_data.position]:
-            blue_code = self.screen.get_at((int(vert[0]), int(vert[1])))[2]
+        # check all player points to see if on enemy pixel
+        points_to_check = self.sprite_data.verts + [self.move_data.position]
+        num_inner_points = 12
+        for i in range(0, num_inner_points):
+            angle = 2.0 * math.pi / num_inner_points * i
+            vert_x = self.sprite_data.size / 2 * cos(angle) + self.move_data.position[0]
+            vert_y = self.sprite_data.size / 2 * sin(angle) + self.move_data.position[1]
+            points_to_check.append([vert_x, vert_y])
+        for point in points_to_check:
+            blue_code = self.screen.get_at((int(point[0]), int(point[1])))[2]
             if blue_code == ENEMY_BIG_COLOR_CODE:
                 # hit a bigger enemy
                 return "DEAD"
@@ -167,8 +174,8 @@ class PlayerActor(PolygonActor):
                 min_square_dist = sys.maxsize
                 for enemy in enemies:
                     enemy.update_color()
-                    x_diff = enemy.move_data.position[0] - vert[0]
-                    y_diff = enemy.move_data.position[1] - vert[1]
+                    x_diff = enemy.move_data.position[0] - point[0]
+                    y_diff = enemy.move_data.position[1] - point[1]
                     square_dist = x_diff * x_diff + y_diff * y_diff
                     if square_dist < min_square_dist:
                         closest_enemy = enemy
