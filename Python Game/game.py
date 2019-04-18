@@ -259,6 +259,47 @@ class GameData:
     player: PlayerActor
     enemies: List[EnemyActor]
 
+
+def quit_game():
+    """Quit the pygame"""
+    pygame.quit()
+    quit()
+
+def title_screen_loop(game_data):
+    """Interaction loop for the title screen"""
+    while True:
+        # spawn enemies
+        frames_per_enemy_spawn = int(FRAMES_PER_ENEMY_SPAWN_INIT - (game_data.score / 2))
+        if frames_per_enemy_spawn < FRAMES_PER_ENEMY_SPAWN_MIN:
+            frames_per_enemy_spawn = frames_per_enemy_spawn
+        if random.randint(1, frames_per_enemy_spawn) == 1:
+            game_data.enemies.append(EnemyActor(game_data.player, game_data.screen))
+
+        # move and draw game objects
+        game_data.screen.fill([0,0,0])
+        for enemy in game_data.enemies:
+            enemy.move()
+            enemy.sprite_data.fill_color = [255, 255, 255]
+            enemy.draw()
+        
+        score_text = game_data.font.render(
+            "Score: {}".format(game_data.score), True, game_data.font_color)
+        game_data.screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
+
+        pygame.display.flip()  # clear screen
+        game_data.clock.tick(FRAMERATE)  # make sure game runs at correct framerate
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_RETURN]:
+            return  # start the game
+        elif keys[pygame.K_ESCAPE]:
+            quit_game()  # quit the game
+
+        # handle quit event
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_is_playing = False
+
 def gameplay_loop(game_data):
     """Main loop for playing the game"""
     game_is_playing = True
@@ -321,11 +362,11 @@ def main():
         )
     )
 
-
+    title_screen_loop(game_data)
     gameplay_loop(game_data)
 
     print("Game over")
-    pygame.quit()
+    quit_game()
     # TODO game over
 
 
