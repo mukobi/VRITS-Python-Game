@@ -31,7 +31,7 @@ ENEMY_BIG_COLOR_CODE = 4
 ENEMY_SMALL_COLOR_CODE = 3
 POLY_ROTATION_MAX = 1.0 * math.pi
 POLY_MAX_SIDES = 10
-FONT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/fonts/ARCADECLASSIC.TTF"
+FONT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/fonts/zorque.ttf"
 FONT_SIZE = 32
 
 
@@ -281,7 +281,7 @@ def main():
         for enemy in enemies:
             enemy.move()
             enemy.draw()
-        score_text = font.render("{} Points".format(score), False, font_color)
+        score_text = font.render("Score: {}".format(score), True, font_color)
         screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
 
         # collision detection
