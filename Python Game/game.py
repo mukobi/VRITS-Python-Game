@@ -310,7 +310,7 @@ def title_screen_loop(game_data):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RETURN]:
             return  # start the game
-        elif keys[pygame.K_ESCAPE]:
+        if keys[pygame.K_ESCAPE]:
             quit_game()  # quit the game
 
         # handle quit event
@@ -368,8 +368,8 @@ def initialize_game_data():
     return GameData(
         clock=pygame.time.Clock(),
         screen=screen,
-        window_tint=[15, 70, 35],  # tint screen a little
-        font_color=[100, 240, 200],  # contrast window tine
+        window_tint=[35, 15, 70],
+        font_color=[100, 100, 240],
         score=0,
         enemies=[],
         player=PlayerActor(
