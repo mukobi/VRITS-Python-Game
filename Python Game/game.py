@@ -146,6 +146,10 @@ class PlayerActor(PolygonActor):
         if self.move_data.position[1] > WINDOW_HEIGHT - self.sprite_data.size:
             self.move_data.position[1] = WINDOW_HEIGHT - self.sprite_data.size
 
+    def grow(self):
+        """Grow the player when eating a smaller enemy"""
+        self.sprite_data.size += 1
+
 
 class EnemyActor(PolygonActor):
     """Class for all enemies"""
@@ -174,7 +178,7 @@ class EnemyActor(PolygonActor):
         spd[0] *= rand_speed
         spd[1] *= rand_speed
         super().__init__(
-            MoveData(spd, pos, [0.0, 0.0], 1), 
+            MoveData(spd, pos, [0.0, 0.0], 1),
             SpriteData(size, 5, fill_color=[0, 0, 0]), screen
         )
         self.player_ref = player_ref
@@ -182,26 +186,48 @@ class EnemyActor(PolygonActor):
 
     def update_color(self):
         """Updates the enemy color based on its size relative to the player"""
-        #size_dif = self.player_ref.move_data.
-        
+        p_size = self.player_ref.sprite_data.size
+        e_size = self.sprite_data.size
+        if e_size >= p_size:
+            # enemy is bigger than player, make shade of red
+            self.sprite_data.fill_color = [255 * p_size / e_size, 0, 0]
+        else:
+            # enemy is smaller than player, make shade of green
+            self.sprite_data.fill_color = [0, 255 * e_size / p_size, 0]
 
+def check_collision(player, enemies, game_is_playing):
+    """Checks for collisions between player and enemies and updates accordingly"""
+    consumed_an_enemy = False
+    non_colliding_enemies = []
+    for enemy in enemies:
+        if player.collides_with(enemy):
+            if player.sprite_data.size > enemy.sprite_data.size:
+                consumed_an_enemy = True
+                enemies.remove(enemy)
+            else:
+                game_is_playing = False
+        else:
+            non_colliding_enemies.append(enemy)
+
+    if consumed_an_enemy:
+        player.grow()
+        for enemy in enemies:
+            enemy.update_color()
+
+    enemies = non_colliding_enemies
 
 def main():
     """Main game runtime function"""
-
     pygame.init()
-
     clock = pygame.time.Clock()
-
     window_size = WINDOW_WIDTH, WINDOW_HEIGHT
-
     screen = pygame.display.set_mode(window_size)
 
     player = PlayerActor(
         MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], 0.9),
-        SpriteData(4, 8, fill_color=[0, 178, 238]), screen
+        SpriteData(size=8, num_sides=8, fill_color=[0, 178, 238]),
+        screen
     )
-
     enemies = []
 
     game_is_playing = True
@@ -209,10 +235,8 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
-
         if random.randint(1, 50) == 1:
             enemies.append(EnemyActor(player, screen))
-
 
         screen.fill([0, 0, 0])
         player.move()
@@ -222,17 +246,7 @@ def main():
             enemy.move()
             enemy.draw()
 
-        non_colliding_enemies = []
-        for enemy in enemies:
-            if player.collides_with(enemy):
-                if player.sprite_data.size > enemy.sprite_data.size:
-                    player.sprite_data.size += 1
-                else:
-                    game_is_playing = False
-            else:
-                non_colliding_enemies.append(enemy)
-
-        enemies = non_colliding_enemies
+        check_collision(player, enemies, game_is_playing)
 
         pygame.display.flip()
 
