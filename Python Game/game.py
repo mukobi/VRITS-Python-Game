@@ -23,10 +23,11 @@ PLAYER_INIT_FRICTION = 0.9
 PLAYER_SPEED_LIMIT = 12
 FRAMES_PER_ENEMY_SPAWN = 50
 ENEMY_MAX_SIZE_SCALE = 3
-ENEMY_MAX_SIDES = 12
 ENEMY_SPEED_MIN = 20
 ENEMY_SPEED_MAX = 200
-ENEMY_ROTATION_MAX = 1.0 * math.pi
+POLY_ROTATION_MAX = 1.0 * math.pi
+POLY_MAX_SIDES = 10
+
 
 @dataclass
 class MoveData:
@@ -156,8 +157,8 @@ class PlayerActor(PolygonActor):
         if self.move_data.position[1] > WINDOW_HEIGHT - self.sprite_data.size:
             self.move_data.position[1] = WINDOW_HEIGHT - self.sprite_data.size
 
-    def grow(self):
-        """Grow the player when eating a smaller enemy"""
+    def eat_enemy(self):
+        """Grow and change the player when eating a smaller enemy"""
         self.sprite_data.size += 1
 
 
@@ -186,13 +187,13 @@ class EnemyActor(PolygonActor):
         rand_speed = random.randint(ENEMY_SPEED_MIN, ENEMY_SPEED_MAX)/FRAMERATE
         speed[0] *= rand_speed
         speed[1] *= rand_speed
-        num_sides = random.randint(3, ENEMY_MAX_SIDES)
+        num_sides = random.randint(3, POLY_MAX_SIDES)
         rotation_rate = random.randint(
-            int(-ENEMY_ROTATION_MAX), int(ENEMY_ROTATION_MAX)) / FRAMERATE
+            int(-POLY_ROTATION_MAX), int(POLY_ROTATION_MAX)) / FRAMERATE
         super().__init__(
-            MoveData(speed=speed, position=pos, acceleration=[0.0, 0.0], friction=1, 
+            MoveData(speed=speed, position=pos, acceleration=[0.0, 0.0], friction=1,
                      rotation=0, rotation_rate=rotation_rate),
-            SpriteData(size=size, num_sides=num_sides, fill_color=[0, 0, 0]), 
+            SpriteData(size=size, num_sides=num_sides, fill_color=[0, 0, 0]),
             screen
         )
         self.player_ref = player_ref
@@ -215,7 +216,12 @@ def check_collision(player, enemies):
     for enemy in enemies:
         if player.collides_with(enemy):
             if player.sprite_data.size > enemy.sprite_data.size:
+                player.move_data.rotation_rate = enemy.move_data.rotation_rate
+                player.sprite_data.num_sides = enemy.sprite_data.num_sides
                 enemies.remove(enemy)
+                player.eat_enemy()
+                for other_enemy in enemies:
+                    other_enemy.update_color()
                 return "EAT"
             return "DEAD"
     return "NONE"
@@ -230,7 +236,7 @@ def main():
     frames_per_enemy_spawn = FRAMES_PER_ENEMY_SPAWN
 
     player = PlayerActor(
-        MoveData(speed=[0, 0], position=[WINDOW_WIDTH/2, WINDOW_HEIGHT/2], 
+        MoveData(speed=[0, 0], position=[WINDOW_WIDTH/2, WINDOW_HEIGHT/2],
                  acceleration=[0, 0], friction=PLAYER_INIT_FRICTION),
         SpriteData(size=PLAYER_INIT_SIZE, num_sides=PLAYER_INIT_SIDES,
                    outline_color=[0, 0, 212], fill_color=[0, 0, 212]),
@@ -261,9 +267,8 @@ def main():
         collision = check_collision(player, enemies)
         game_is_playing = collision != "DEAD"
         if collision == "EAT":
-            player.grow()
-            for enemy in enemies:
-                enemy.update_color()
+            # TODO track score
+            pass
 
         pygame.display.flip()  # clear screen
         clock.tick(FRAMERATE)  # make sure game runs at correct framerate
