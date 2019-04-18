@@ -157,12 +157,12 @@ class PlayerActor(PolygonActor):
         Returns a string describing the resulting collision info"""
         # check all player points to see if on enemy pixel
         points_to_check = self.sprite_data.verts + [self.move_data.position]
-        num_inner_points = 12
-        for i in range(0, num_inner_points):
-            angle = 2.0 * math.pi / num_inner_points * i
-            vert_x = self.sprite_data.size / 2 * cos(angle) + self.move_data.position[0]
-            vert_y = self.sprite_data.size / 2 * sin(angle) + self.move_data.position[1]
-            points_to_check.append([vert_x, vert_y])
+        for i in range(0, 12):
+            angle = 2.0 * math.pi / 12 * i
+            vert = [0, 0]
+            vert[0] = self.sprite_data.size / 2 * cos(angle) + self.move_data.position[0]
+            vert[1] = self.sprite_data.size / 2 * sin(angle) + self.move_data.position[1]
+            points_to_check.append(vert)
         for point in points_to_check:
             blue_code = self.screen.get_at((int(point[0]), int(point[1])))[2]
             if blue_code == ENEMY_BIG_COLOR_CODE:
