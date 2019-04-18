@@ -9,7 +9,7 @@ from math import sqrt, sin, cos
 import sys
 import random
 from dataclasses import dataclass, field
-from typing import List, ClassVar
+from typing import List
 import os
 import pygame
 
@@ -254,7 +254,6 @@ class GameData:
     screen: pygame.surface
     window_tint: List[int]
     font_color: List[int]
-    font: pygame.font
     score: int
     player: PlayerActor
     enemies: List[EnemyActor]
@@ -267,6 +266,8 @@ def quit_game():
 
 def title_screen_loop(game_data):
     """Interaction loop for the title screen"""
+    font_large = pygame.font.Font(FONT_PATH, FONT_SIZE)
+    font_small = pygame.font.Font(FONT_PATH, int(FONT_SIZE * 2 / 3))
     while True:
         # spawn enemies
         frames_per_enemy_spawn = int(FRAMES_PER_ENEMY_SPAWN_INIT - (game_data.score / 2))
@@ -276,15 +277,32 @@ def title_screen_loop(game_data):
             game_data.enemies.append(EnemyActor(game_data.player, game_data.screen))
 
         # move and draw game objects
-        game_data.screen.fill([0,0,0])
+        game_data.screen.fill([0, 0, 0])
         for enemy in game_data.enemies:
             enemy.move()
             enemy.sprite_data.fill_color = [255, 255, 255]
             enemy.draw()
-        
-        score_text = game_data.font.render(
-            "Score: {}".format(game_data.score), True, game_data.font_color)
-        game_data.screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
+
+        text0 = font_large.render(
+            "Polygonner!", True, [200, 200, 200])
+        text1 = font_small.render(
+            "Eat the smaller polygons to grow larger", True, [100, 255, 100])
+        text2 = font_small.render(
+            "Avoid the larger ones, or you'll be a gonner", True, [255, 100, 100])
+        text3 = font_small.render(
+            "Arrow keys to move, Enter to start, Esc to quit", True, [200, 200, 200])
+        game_data.screen.blit(text0,
+                              ((WINDOW_WIDTH - text0.get_width()) / 2,
+                               (WINDOW_HEIGHT - 4 * text0.get_height()) / 2))
+        game_data.screen.blit(text1,
+                              ((WINDOW_WIDTH - text1.get_width()) / 2,
+                               (WINDOW_HEIGHT - 2 * text1.get_height()) / 2))
+        game_data.screen.blit(text2,
+                              ((WINDOW_WIDTH - text2.get_width()) / 2,
+                               (WINDOW_HEIGHT + 0 * text2.get_height()) / 2))
+        game_data.screen.blit(text3,
+                              ((WINDOW_WIDTH - text3.get_width()) / 2,
+                               (WINDOW_HEIGHT + 2 * text3.get_height()) / 2))
 
         pygame.display.flip()  # clear screen
         game_data.clock.tick(FRAMERATE)  # make sure game runs at correct framerate
@@ -298,10 +316,11 @@ def title_screen_loop(game_data):
         # handle quit event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                game_is_playing = False
+                quit_game()
 
 def gameplay_loop(game_data):
     """Main loop for playing the game"""
+    font_large = pygame.font.Font(FONT_PATH, FONT_SIZE)
     game_is_playing = True
     while game_is_playing:
         # spawn enemies
@@ -318,9 +337,10 @@ def gameplay_loop(game_data):
         for enemy in game_data.enemies:
             enemy.move()
             enemy.draw()
-        score_text = game_data.font.render(
+        score_text = font_large.render(
             "Score: {}".format(game_data.score), True, game_data.font_color)
         game_data.screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
+
 
         # collision detection
         collision = game_data.player.check_collision(game_data.enemies)
@@ -337,20 +357,19 @@ def gameplay_loop(game_data):
         # handle quit event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                game_is_playing = False
+                quit_game()
 
-def main():
-    """Main game execution function"""
-    # set up game and variables
-    pygame.init()
+        # TODO game over
+
+def initialize_game_data():
+    """Returns an initialized GameData object"""
     window_size = WINDOW_WIDTH, WINDOW_HEIGHT
     screen = pygame.display.set_mode(window_size)
-    game_data = GameData(
+    return GameData(
         clock=pygame.time.Clock(),
         screen=screen,
         window_tint=[15, 70, 35],  # tint screen a little
         font_color=[100, 240, 200],  # contrast window tine
-        font=pygame.font.Font(FONT_PATH, FONT_SIZE),
         score=0,
         enemies=[],
         player=PlayerActor(
@@ -362,12 +381,17 @@ def main():
         )
     )
 
-    title_screen_loop(game_data)
-    gameplay_loop(game_data)
+def main():
+    """Main game execution function"""
+    # set up game and variables
+    pygame.init()
+    game_data = initialize_game_data()
+    pygame.display.set_caption("Polygonner!")
 
-    print("Game over")
-    quit_game()
-    # TODO game over
+    title_screen_loop(game_data)
+
+    game_data = initialize_game_data()  # reset game before start of playing
+    gameplay_loop(game_data)
 
 
 if __name__ == "__main__":
