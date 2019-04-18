@@ -22,7 +22,7 @@ PLAYER_INIT_SIDES = 6
 PLAYER_INIT_FRICTION = 0.9
 PLAYER_SPEED_LIMIT = 12
 FRAMES_PER_ENEMY_SPAWN = 50
-ENEMY_MAX_SIZE_SCALE = 3
+ENEMY_SIZE_SCALE = 3
 ENEMY_SPEED_MIN = 20
 ENEMY_SPEED_MAX = 200
 ENEMY_BIG_COLOR_CODE = 4
@@ -195,7 +195,9 @@ class EnemyActor(PolygonActor):
         """Spawn in enemy from a random edge witg random speed"""
         pos = [0, 0]
         speed = [0, 0]
-        size = random.randint(4, player_ref.sprite_data.size * ENEMY_MAX_SIZE_SCALE)
+        size = random.randint(
+            int(player_ref.sprite_data.size / ENEMY_SIZE_SCALE),
+            int(player_ref.sprite_data.size * ENEMY_SIZE_SCALE))
         # choose a random edge to spawn from
         edge = random.randint(0, 3)
         if edge == 0: # Left Edge
