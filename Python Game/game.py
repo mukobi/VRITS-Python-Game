@@ -26,6 +26,7 @@ ENEMY_MAX_SIZE_SCALE = 3
 ENEMY_MAX_SIDES = 12
 ENEMY_SPEED_MIN = 20
 ENEMY_SPEED_MAX = 200
+ENEMY_ROTATION_MAX = 1.0 * math.pi
 
 @dataclass
 class MoveData:
@@ -34,6 +35,8 @@ class MoveData:
     position: List[float]
     acceleration: List[float]
     friction: float
+    rotation: float = 0.0
+    rotation_rate: float = 0.0
 
 
 @dataclass
@@ -74,13 +77,15 @@ class Actor:
         self.move_data.position[0] = self.move_data.position[0] + self.move_data.speed[0]
         self.move_data.position[1] = self.move_data.position[1] + self.move_data.speed[1]
 
+        self.move_data.rotation += self.move_data.rotation_rate
+        self.move_data.rotation %= 2.0 * math.pi
+
     def draw(self):
         """Draw the actor"""
 
 
 class PolygonActor(Actor):
     """Parent class defining polygon geometry"""
-    # TODO add rotation
     def __init__(self, move_data, sprite_data, screen):
         super().__init__(move_data)
         self.sprite_data = sprite_data
@@ -91,7 +96,7 @@ class PolygonActor(Actor):
         """Populate the list verts with vertices of actor's polygon"""
         verts = []
         for i in range(0, self.sprite_data.num_sides):
-            angle = 2.0 * math.pi / self.sprite_data.num_sides * i
+            angle = 2.0 * math.pi / self.sprite_data.num_sides * i + self.move_data.rotation
             vert_x = self.sprite_data.size * cos(angle) + self.move_data.position[0]
             vert_y = self.sprite_data.size * sin(angle) + self.move_data.position[1]
             verts.append([vert_x, vert_y])
@@ -161,30 +166,34 @@ class EnemyActor(PolygonActor):
     def __init__(self, player_ref, screen):
         """Spawn in enemy from a random edge witg random speed"""
         pos = [0, 0]
-        spd = [0, 0]
+        speed = [0, 0]
         size = random.randint(1, player_ref.sprite_data.size * ENEMY_MAX_SIZE_SCALE)
         # choose a random edge to spawn from
         edge = random.randint(0, 3)
         if edge == 0: # Left Edge
             pos = [-size, random.random() * WINDOW_HEIGHT]
-            spd = [1, 0]
+            speed = [1, 0]
         elif edge == 1:  # Right Edge
             pos = [WINDOW_WIDTH + size, random.random() * WINDOW_HEIGHT]
-            spd = [-1, 0]
+            speed = [-1, 0]
         elif edge == 2: # Top Edge
             pos = [random.random() * WINDOW_WIDTH, -size]
-            spd = [0, 1]
+            speed = [0, 1]
         elif edge == 3: # Bottom Edge
             pos = [random.random() * WINDOW_WIDTH, WINDOW_HEIGHT + size]
-            spd = [0, -1]
+            speed = [0, -1]
 
         rand_speed = random.randint(ENEMY_SPEED_MIN, ENEMY_SPEED_MAX)/FRAMERATE
-        spd[0] *= rand_speed
-        spd[1] *= rand_speed
+        speed[0] *= rand_speed
+        speed[1] *= rand_speed
         num_sides = random.randint(3, ENEMY_MAX_SIDES)
+        rotation_rate = random.randint(
+            int(-ENEMY_ROTATION_MAX), int(ENEMY_ROTATION_MAX)) / FRAMERATE
         super().__init__(
-            MoveData(spd, pos, [0.0, 0.0], 1),
-            SpriteData(size, num_sides, fill_color=[0, 0, 0]), screen
+            MoveData(speed=speed, position=pos, acceleration=[0.0, 0.0], friction=1, 
+                     rotation=0, rotation_rate=rotation_rate),
+            SpriteData(size=size, num_sides=num_sides, fill_color=[0, 0, 0]), 
+            screen
         )
         self.player_ref = player_ref
         self.update_color()
@@ -221,7 +230,8 @@ def main():
     frames_per_enemy_spawn = FRAMES_PER_ENEMY_SPAWN
 
     player = PlayerActor(
-        MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], friction=PLAYER_INIT_FRICTION),
+        MoveData(speed=[0, 0], position=[WINDOW_WIDTH/2, WINDOW_HEIGHT/2], 
+                 acceleration=[0, 0], friction=PLAYER_INIT_FRICTION),
         SpriteData(size=PLAYER_INIT_SIZE, num_sides=PLAYER_INIT_SIDES,
                    outline_color=[0, 0, 212], fill_color=[0, 0, 212]),
         screen
