@@ -22,7 +22,8 @@ PLAYER_INIT_SIZE = 6
 PLAYER_INIT_SIDES = 6
 PLAYER_INIT_FRICTION = 0.9
 PLAYER_SPEED_LIMIT = 12
-FRAMES_PER_ENEMY_SPAWN = 50
+FRAMES_PER_ENEMY_SPAWN_INIT = 50
+FRAMES_PER_ENEMY_SPAWN_MIN = 20
 ENEMY_SIZE_SCALE = 5
 ENEMY_ANGLE_VARIANCE = 0.8
 ENEMY_SPEED_MIN = 20
@@ -252,7 +253,6 @@ def main():
     clock = pygame.time.Clock()
     window_size = WINDOW_WIDTH, WINDOW_HEIGHT
     screen = pygame.display.set_mode(window_size)
-    frames_per_enemy_spawn = FRAMES_PER_ENEMY_SPAWN
     window_tint = [15, 70, 35]  # tint screen a little
     font_color = [100, 240, 200]  # contrast window tine
     font = pygame.font.Font(FONT_PATH, FONT_SIZE)
@@ -271,6 +271,9 @@ def main():
     game_is_playing = True
     while game_is_playing:
         # spawn enemies
+        frames_per_enemy_spawn = int(FRAMES_PER_ENEMY_SPAWN_INIT - (score / 2))
+        if frames_per_enemy_spawn < FRAMES_PER_ENEMY_SPAWN_MIN:
+            frames_per_enemy_spawn = frames_per_enemy_spawn
         if random.randint(1, frames_per_enemy_spawn) == 1:
             enemies.append(EnemyActor(player, screen))
 
