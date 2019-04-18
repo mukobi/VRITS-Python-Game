@@ -16,7 +16,8 @@ import pygame
 FRAMERATE = 60
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
-
+PLAYER_ACC_LIMIT = 0.4
+FRAMES_PER_ENEMY_SPAWN = 50
 
 @dataclass
 class MoveData:
@@ -110,21 +111,20 @@ class PlayerActor(PolygonActor):
 
     def accelerate(self):
         keys = pygame.key.get_pressed()
-        acc_limit = 0.4
         self.move_data.acceleration = [0.0, 0.0]
         if keys[pygame.K_LEFT]:
-            self.move_data.acceleration[0] -= acc_limit
+            self.move_data.acceleration[0] -= PLAYER_ACC_LIMIT
         if keys[pygame.K_RIGHT]:
-            self.move_data.acceleration[0] += acc_limit
+            self.move_data.acceleration[0] += PLAYER_ACC_LIMIT
         if keys[pygame.K_UP]:
-            self.move_data.acceleration[1] -= acc_limit
+            self.move_data.acceleration[1] -= PLAYER_ACC_LIMIT
         if keys[pygame.K_DOWN]:
-            self.move_data.acceleration[1] += acc_limit
+            self.move_data.acceleration[1] += PLAYER_ACC_LIMIT
 
         acc_mag = length(self.move_data.acceleration)
-        if acc_mag > acc_limit:
-            self.move_data.acceleration[0] = self.move_data.acceleration[0] / acc_mag * acc_limit
-            self.move_data.acceleration[1] = self.move_data.acceleration[1] / acc_mag * acc_limit
+        if acc_mag > PLAYER_ACC_LIMIT:
+            self.move_data.acceleration[0] *= PLAYER_ACC_LIMIT / acc_mag
+            self.move_data.acceleration[1] *= PLAYER_ACC_LIMIT / acc_mag
 
     def modify_speed(self):
         speed_limit = 8
@@ -195,26 +195,17 @@ class EnemyActor(PolygonActor):
             # enemy is smaller than player, make shade of green
             self.sprite_data.fill_color = [0, 255 * e_size / p_size, 0]
 
-def check_collision(player, enemies, game_is_playing):
-    """Checks for collisions between player and enemies and updates accordingly"""
-    consumed_an_enemy = False
-    non_colliding_enemies = []
+def check_collision(player, enemies):
+    """Checks for collisions between player and enemies
+    Returns a string describing the resulting collision info"""
     for enemy in enemies:
         if player.collides_with(enemy):
             if player.sprite_data.size > enemy.sprite_data.size:
-                consumed_an_enemy = True
                 enemies.remove(enemy)
+                return "EAT"
             else:
-                game_is_playing = False
-        else:
-            non_colliding_enemies.append(enemy)
-
-    if consumed_an_enemy:
-        player.grow()
-        for enemy in enemies:
-            enemy.update_color()
-
-    enemies = non_colliding_enemies
+                return "DEAD"
+    return "NONE"
 
 def main():
     """Main game runtime function"""
@@ -222,36 +213,44 @@ def main():
     clock = pygame.time.Clock()
     window_size = WINDOW_WIDTH, WINDOW_HEIGHT
     screen = pygame.display.set_mode(window_size)
+    frames_per_enemy_spawn = FRAMES_PER_ENEMY_SPAWN
 
     player = PlayerActor(
-        MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], 0.9),
+        MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], friction=0.9),
         SpriteData(size=8, num_sides=8, fill_color=[0, 178, 238]),
         screen
     )
     enemies = []
 
+    # main game loop
     game_is_playing = True
     while game_is_playing:
+        # handle quit event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
-        if random.randint(1, 50) == 1:
+        # spawn enemies
+        if random.randint(1, frames_per_enemy_spawn) == 1:
             enemies.append(EnemyActor(player, screen))
 
-        screen.fill([0, 0, 0])
+        # move and draw actors
+        screen.fill([10, 0, 0])
         player.move()
         player.draw()
-
         for enemy in enemies:
             enemy.move()
             enemy.draw()
 
-        check_collision(player, enemies, game_is_playing)
+        # collision detection
+        collision = check_collision(player, enemies)
+        game_is_playing = collision != "DEAD"
+        if collision == "EAT":
+            player.grow()
+            for enemy in enemies:
+                enemy.update_color()
 
-        pygame.display.flip()
-
+        pygame.display.flip()  # clear screen
         clock.tick(FRAMERATE)  # make sure game runs at correct framerate
-
 
     print("Game over")
     pygame.quit()
