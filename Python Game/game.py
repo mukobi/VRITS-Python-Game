@@ -70,13 +70,14 @@ class Actor:
 class PolygonActor(Actor):
     """Class for all enemies"""
 
-    def __init__(self, move_data, size, num_sides):
+    def __init__(self, move_data, size, num_sides, screen):
         super().__init__(move_data)
         self.size = size
         self.num_sides = num_sides
         self.verts = []
         self.outline_color = [255, 255, 255]
         self.fill_color = [0, 0, 255]
+        self.screen = screen
 
     def generate_poly(self):
         """Populate the list verts with vertices of actor's polygon"""
@@ -91,8 +92,8 @@ class PolygonActor(Actor):
     def draw(self):
         """Generate polygon geometry then draws shape accordingly"""
         self.generate_poly()
-        pygame.draw.polygon(SCREEN, self.fill_color, self.verts)
-        pygame.draw.aalines(SCREEN, self.outline_color, True, self.verts)
+        pygame.draw.polygon(self.screen, self.fill_color, self.verts)
+        pygame.draw.aalines(self.screen, self.outline_color, True, self.verts)
 
     def collides_with(self, other_polygon_actor):
         """Test if colliding with another polygon actor"""
@@ -145,7 +146,7 @@ class PlayerActor(PolygonActor):
 class EnemyActor(PolygonActor):
     """Class for all enemies"""
 
-    def __init__(self, player_ref):
+    def __init__(self, player_ref, screen):
         """Spawn in enemy from a random edge witg random speed"""
         pos = [0, 0]
         spd = [0, 0]
@@ -168,7 +169,7 @@ class EnemyActor(PolygonActor):
         rand_speed = random.randint(20, 100)/60
         spd[0] *= rand_speed
         spd[1] *= rand_speed
-        super().__init__(MoveData(spd, pos, [0.0, 0.0], 1), size, 5)
+        super().__init__(MoveData(spd, pos, [0.0, 0.0], 1), size, 5, screen)
         self.player_ref = player_ref
         self.update_color()
 
@@ -177,22 +178,23 @@ class EnemyActor(PolygonActor):
         #size_dif = self.player_ref.move_data.
 
 
+def main():
+    """Main game runtime function"""
 
-if __name__ == "__main__": # TODO refactor into function
     pygame.init()
 
-    CLOCK = pygame.time.Clock()
+    clock = pygame.time.Clock()
 
-    WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT
+    window_size = WINDOW_WIDTH, WINDOW_HEIGHT
 
-    SCREEN = pygame.display.set_mode(WINDOW_SIZE)
-    pygame.surface
-    PLAYER = PlayerActor(
+    screen = pygame.display.set_mode(window_size)
+
+    player = PlayerActor(
         MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], 0.9),
-        4, 8
+        4, 8, screen
     )
 
-    ENEMIES = []
+    enemies = []
 
     game_is_playing = True
     while game_is_playing:
@@ -201,35 +203,39 @@ if __name__ == "__main__": # TODO refactor into function
                 sys.exit()
 
         if random.randint(1, 50) == 1:
-            ENEMIES.append(EnemyActor(PLAYER))
+            enemies.append(EnemyActor(player, screen))
 
 
-        SCREEN.fill([0, 0, 0])
-        PLAYER.move()
-        PLAYER.draw()
+        screen.fill([0, 0, 0])
+        player.move()
+        player.draw()
 
-        for enemy in ENEMIES:
+        for enemy in enemies:
             enemy.move()
             enemy.draw()
 
         non_colliding_enemies = []
-        for enemy in ENEMIES:
-            if PLAYER.collides_with(enemy):
-                if PLAYER.size > enemy.size:
-                    PLAYER.size += 1
+        for enemy in enemies:
+            if player.collides_with(enemy):
+                if player.size > enemy.size:
+                    player.size += 1
                 else:
                     game_is_playing = False
             else:
                 non_colliding_enemies.append(enemy)
 
-        ENEMIES = non_colliding_enemies
+        enemies = non_colliding_enemies
 
         pygame.display.flip()
-        
-        CLOCK.tick(FRAMERATE)  # make sure game runs at correct framerate
+
+        clock.tick(FRAMERATE)  # make sure game runs at correct framerate
 
 
     print("Game over")
     pygame.quit()
     # TODO game over
+
+
+if __name__ == "__main__":
+    main()
     
