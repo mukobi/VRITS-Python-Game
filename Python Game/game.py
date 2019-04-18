@@ -322,7 +322,7 @@ def gameplay_loop(game_data):
     """Main loop for playing the game"""
     font_large = pygame.font.Font(FONT_PATH, FONT_SIZE)
     game_is_playing = True
-    while game_is_playing:
+    while True:
         # spawn enemies
         frames_per_enemy_spawn = int(FRAMES_PER_ENEMY_SPAWN_INIT - (game_data.score / 2))
         if frames_per_enemy_spawn < FRAMES_PER_ENEMY_SPAWN_MIN:
@@ -330,36 +330,40 @@ def gameplay_loop(game_data):
         if random.randint(1, frames_per_enemy_spawn) == 1:
             game_data.enemies.append(EnemyActor(game_data.player, game_data.screen))
 
-        # move and draw game objects
         game_data.screen.fill(game_data.window_tint)
-        game_data.player.move()
-        game_data.player.draw()
-        for enemy in game_data.enemies:
-            enemy.move()
-            enemy.draw()
+
+        if game_is_playing:
+            # move and draw player
+            game_data.player.move()
+            game_data.player.draw()
+            for enemy in game_data.enemies:
+                enemy.move()
+                enemy.draw()
+
+            # collision detection
+            collision = game_data.player.check_collision(game_data.enemies)
+            game_is_playing = collision != "DEAD"
+            if collision == "EAT":
+                # shuffle screen and font color
+                game_data.window_tint = game_data.window_tint[1:] + [game_data.window_tint[0]]
+                game_data.font_color = game_data.font_color[1:] + [game_data.font_color[0]]
+                game_data.score += 1
+        else:
+            # game is over, show game over screen
+            for enemy in game_data.enemies:
+                enemy.move()
+                enemy.draw()
+            
         score_text = font_large.render(
             "Score: {}".format(game_data.score), True, game_data.font_color)
         game_data.screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
 
-
-        # collision detection
-        collision = game_data.player.check_collision(game_data.enemies)
-        game_is_playing = collision != "DEAD"
-        if collision == "EAT":
-            # shuffle screen and font color
-            game_data.window_tint = game_data.window_tint[1:] + [game_data.window_tint[0]]
-            game_data.font_color = game_data.font_color[1:] + [game_data.font_color[0]]
-            game_data.score += 1
-
         pygame.display.flip()  # clear screen
         game_data.clock.tick(FRAMERATE)  # make sure game runs at correct framerate
-
         # handle quit event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 quit_game()
-
-        # TODO game over
 
 def initialize_game_data():
     """Returns an initialized GameData object"""
