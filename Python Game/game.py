@@ -10,19 +10,20 @@ import sys
 import random
 from dataclasses import dataclass, field
 from typing import List
+import os
 import pygame
 
 # constants
-FRAMERATE = 60
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
+FRAMERATE = 60
 PLAYER_ACC_LIMIT = 0.4
 PLAYER_INIT_SIZE = 6
 PLAYER_INIT_SIDES = 6
 PLAYER_INIT_FRICTION = 0.9
 PLAYER_SPEED_LIMIT = 12
 FRAMES_PER_ENEMY_SPAWN = 50
-ENEMY_SIZE_SCALE = 3
+ENEMY_SIZE_SCALE = 5
 ENEMY_ANGLE_VARIANCE = 0.8
 ENEMY_SPEED_MIN = 20
 ENEMY_SPEED_MAX = 200
@@ -30,6 +31,8 @@ ENEMY_BIG_COLOR_CODE = 4
 ENEMY_SMALL_COLOR_CODE = 3
 POLY_ROTATION_MAX = 1.0 * math.pi
 POLY_MAX_SIDES = 10
+FONT_PATH = os.path.dirname(os.path.realpath(__file__)) + "/res/fonts/ARCADECLASSIC.TTF"
+FONT_SIZE = 32
 
 
 @dataclass
@@ -199,6 +202,7 @@ class EnemyActor(PolygonActor):
         size = random.randint(
             int(player_ref.sprite_data.size / ENEMY_SIZE_SCALE),
             int(player_ref.sprite_data.size * ENEMY_SIZE_SCALE))
+        size = 4 if size < 4 else size
         # choose a random edge to spawn from
         edge = random.randint(0, 3)
         if edge == 0: # Left Edge
@@ -249,12 +253,16 @@ def main():
     window_size = WINDOW_WIDTH, WINDOW_HEIGHT
     screen = pygame.display.set_mode(window_size)
     frames_per_enemy_spawn = FRAMES_PER_ENEMY_SPAWN
+    window_tint = [15, 70, 35]  # tint screen a little
+    font_color = [100, 240, 200]  # contrast window tine
+    font = pygame.font.Font(FONT_PATH, FONT_SIZE)
+    score = 0
 
     player = PlayerActor(
         MoveData(speed=[0, 0], position=[WINDOW_WIDTH/2, WINDOW_HEIGHT/2],
                  acceleration=[0, 0], friction=PLAYER_INIT_FRICTION),
         SpriteData(size=PLAYER_INIT_SIZE, num_sides=PLAYER_INIT_SIDES,
-                   outline_color=[0, 0, 212], fill_color=[0, 0, 212]),
+                   outline_color=[21, 121, 212], fill_color=[21, 121, 212]),
         screen
     )
     enemies = []
@@ -262,31 +270,36 @@ def main():
     # main game loop
     game_is_playing = True
     while game_is_playing:
-        # handle quit event
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit()
         # spawn enemies
         if random.randint(1, frames_per_enemy_spawn) == 1:
             enemies.append(EnemyActor(player, screen))
 
-        # move and draw actors
-        screen.fill([0, 0, 40])  # tint screen a little blue
+        # move and draw game objects
+        screen.fill(window_tint)
         player.move()
         player.draw()
         for enemy in enemies:
             enemy.move()
             enemy.draw()
+        score_text = font.render("{} Points".format(score), False, font_color)
+        screen.blit(score_text, (WINDOW_WIDTH - score_text.get_width() - 16, 16))
 
         # collision detection
         collision = player.check_collision(enemies)
         game_is_playing = collision != "DEAD"
         if collision == "EAT":
-            # TODO track score
-            pass
+            # shuffle screen and font color
+            window_tint = window_tint[1:] + [window_tint[0]]
+            font_color = font_color[1:] + [font_color[0]]
+            score += 1
 
         pygame.display.flip()  # clear screen
         clock.tick(FRAMERATE)  # make sure game runs at correct framerate
+
+        # handle quit event
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_is_playing = False
 
     print("Game over")
     pygame.quit()
