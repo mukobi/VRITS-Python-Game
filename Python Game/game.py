@@ -8,6 +8,8 @@ import math
 from math import sqrt, sin, cos
 import sys
 import random
+from dataclasses import dataclass
+from typing import List
 import pygame
 
 # constants
@@ -15,13 +17,21 @@ FRAMERATE = 60
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
-class Kinematics:
+@dataclass
+class MoveData:
     """Data class to encapsulate information about movement"""
-    def __init__(self, speed, position, friction, acceleration):
-        self.speed = speed
-        self.position = position
-        self.friction = friction
-        self.acceleration = acceleration
+    speed: List[float]
+    position: List[float]
+    acceleration: List[float]
+    friction: float
+
+@dataclass
+class SpriteData:
+    """Data class to encapsulate information about movement"""
+    speed: List[float]
+    position: List[float]
+    acceleration: List[float]
+    friction: float
 
 def length(vec):
     """Get the distance between 2 2D vectors"""
@@ -30,28 +40,28 @@ def length(vec):
 class Actor:
     """Parent class for game actors"""
     # TODO add rotation
-    def __init__(self, kinematics):
-        self.kinematics = kinematics
+    def __init__(self, move_data):
+        self.move_data = move_data
 
     def accelerate(self):
         """Accelerate the actor"""
 
     def modify_speed(self):
         """Change the actor's speed"""
-        self.kinematics.speed[0] *= self.kinematics.friction
-        self.kinematics.speed[1] *= self.kinematics.friction
+        self.move_data.speed[0] *= self.move_data.friction
+        self.move_data.speed[1] *= self.move_data.friction
 
     def move(self):
         """Move the actor based on speed and acceleration"""
         self.accelerate()
 
-        self.kinematics.speed[0] += self.kinematics.acceleration[0]
-        self.kinematics.speed[1] += self.kinematics.acceleration[1]
+        self.move_data.speed[0] += self.move_data.acceleration[0]
+        self.move_data.speed[1] += self.move_data.acceleration[1]
 
         self.modify_speed()
 
-        self.kinematics.position[0] = self.kinematics.position[0] + self.kinematics.speed[0]
-        self.kinematics.position[1] = self.kinematics.position[1] + self.kinematics.speed[1]
+        self.move_data.position[0] = self.move_data.position[0] + self.move_data.speed[0]
+        self.move_data.position[1] = self.move_data.position[1] + self.move_data.speed[1]
 
     def draw(self):
         """Draw the actor"""
@@ -60,8 +70,8 @@ class Actor:
 class PolygonActor(Actor):
     """Class for all enemies"""
 
-    def __init__(self, kinematics, size, num_sides):
-        super().__init__(kinematics)
+    def __init__(self, move_data, size, num_sides):
+        super().__init__(move_data)
         self.size = size
         self.num_sides = num_sides
         self.verts = []
@@ -73,8 +83,8 @@ class PolygonActor(Actor):
         verts = []
         for i in range(0, self.num_sides):
             angle = 2.0 * math.pi / self.num_sides * i
-            vert_x = self.size * cos(angle) + self.kinematics.position[0]
-            vert_y = self.size * sin(angle) + self.kinematics.position[1]
+            vert_x = self.size * cos(angle) + self.move_data.position[0]
+            vert_y = self.size * sin(angle) + self.move_data.position[1]
             verts.append([vert_x, vert_y])
         self.verts = verts
 
@@ -86,8 +96,8 @@ class PolygonActor(Actor):
 
     def collides_with(self, other_polygon_actor):
         """Test if colliding with another polygon actor"""
-        x_diff = self.kinematics.position[0] - other_polygon_actor.kinematics.position[0]
-        y_diff = self.kinematics.position[1] - other_polygon_actor.kinematics.position[1]
+        x_diff = self.move_data.position[0] - other_polygon_actor.move_data.position[0]
+        y_diff = self.move_data.position[1] - other_polygon_actor.move_data.position[1]
         dist = sqrt(x_diff*x_diff + y_diff*y_diff)
         return dist < self.size + other_polygon_actor.size
 
@@ -97,45 +107,45 @@ class PlayerActor(PolygonActor):
     def accelerate(self):
         keys = pygame.key.get_pressed()
         acc_limit = 0.4
-        self.kinematics.acceleration = [0, 0]
+        self.move_data.acceleration = [0.0, 0.0]
         if keys[pygame.K_LEFT]:
-            self.kinematics.acceleration[0] -= acc_limit
+            self.move_data.acceleration[0] -= acc_limit
         if keys[pygame.K_RIGHT]:
-            self.kinematics.acceleration[0] += acc_limit
+            self.move_data.acceleration[0] += acc_limit
         if keys[pygame.K_UP]:
-            self.kinematics.acceleration[1] -= acc_limit
+            self.move_data.acceleration[1] -= acc_limit
         if keys[pygame.K_DOWN]:
-            self.kinematics.acceleration[1] += acc_limit
+            self.move_data.acceleration[1] += acc_limit
 
-        acc_mag = length(self.kinematics.acceleration)
+        acc_mag = length(self.move_data.acceleration)
         if acc_mag > acc_limit:
-            self.kinematics.acceleration[0] = self.kinematics.acceleration[0] / acc_mag * acc_limit
-            self.kinematics.acceleration[1] = self.kinematics.acceleration[1] / acc_mag * acc_limit
+            self.move_data.acceleration[0] = self.move_data.acceleration[0] / acc_mag * acc_limit
+            self.move_data.acceleration[1] = self.move_data.acceleration[1] / acc_mag * acc_limit
 
     def modify_speed(self):
         speed_limit = 8
-        speed_mag = length(self.kinematics.speed)
+        speed_mag = length(self.move_data.speed)
         if speed_mag > speed_limit:
-            self.kinematics.speed[0] = self.kinematics.speed[0] / speed_mag * speed_limit
-            self.kinematics.speed[1] = self.kinematics.speed[1] / speed_mag * speed_limit
+            self.move_data.speed[0] = self.move_data.speed[0] / speed_mag * speed_limit
+            self.move_data.speed[1] = self.move_data.speed[1] / speed_mag * speed_limit
 
         super().modify_speed()
 
     def move(self):
         super().move()
-        if self.kinematics.position[0] < self.size:
-            self.kinematics.position[0] = self.size
-        if self.kinematics.position[0] > WINDOW_WIDTH - self.size:
-            self.kinematics.position[0] = WINDOW_WIDTH - self.size
-        if self.kinematics.position[1] < self.size:
-            self.kinematics.position[1] = self.size
-        if self.kinematics.position[1] > WINDOW_HEIGHT - self.size:
-            self.kinematics.position[1] = WINDOW_HEIGHT - self.size
+        if self.move_data.position[0] < self.size:
+            self.move_data.position[0] = self.size
+        if self.move_data.position[0] > WINDOW_WIDTH - self.size:
+            self.move_data.position[0] = WINDOW_WIDTH - self.size
+        if self.move_data.position[1] < self.size:
+            self.move_data.position[1] = self.size
+        if self.move_data.position[1] > WINDOW_HEIGHT - self.size:
+            self.move_data.position[1] = WINDOW_HEIGHT - self.size
 
 class EnemyActor(PolygonActor):
     """Class for all enemies"""
 
-    def __init__(self):
+    def __init__(self, player_ref):
         """Spawn in enemy from a random edge witg random speed"""
         pos = [0, 0]
         spd = [0, 0]
@@ -143,22 +153,29 @@ class EnemyActor(PolygonActor):
         # choose a random edge
         edge = random.randint(0, 3)
         if edge == 0: # Left Edge
-            pos = [-size, random.randint(0, WINDOW_HEIGHT)]
+            pos = [-size, random.random() * WINDOW_HEIGHT]
             spd = [1, 0]
         elif edge == 1:  # Right Edge
-            pos = [WINDOW_WIDTH + size, random.randint(0, WINDOW_HEIGHT)]
+            pos = [WINDOW_WIDTH + size, random.random() * WINDOW_HEIGHT]
             spd = [-1, 0]
         elif edge == 2: # Top Edge
-            pos = [random.randint(0, WINDOW_WIDTH), -size]
+            pos = [random.random() * WINDOW_WIDTH, -size]
             spd = [0, 1]
         elif edge == 3: # Bottom Edge
-            pos = [random.randint(0, WINDOW_WIDTH), WINDOW_HEIGHT + size]
+            pos = [random.random() * WINDOW_WIDTH, WINDOW_HEIGHT + size]
             spd = [0, -1]
 
         rand_speed = random.randint(20, 100)/60
         spd[0] *= rand_speed
         spd[1] *= rand_speed
-        super().__init__(Kinematics(spd, pos, 1, [0, 0]), size, 5)
+        super().__init__(MoveData(spd, pos, [0.0, 0.0], 1), size, 5)
+        self.player_ref = player_ref
+        self.update_color()
+
+    def update_color(self):
+        """Updates the enemy color based on its size relative to the player"""
+        #size_dif = self.player_ref.move_data.
+
 
 
 if __name__ == "__main__": # TODO refactor into function
@@ -169,9 +186,9 @@ if __name__ == "__main__": # TODO refactor into function
     WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT
 
     SCREEN = pygame.display.set_mode(WINDOW_SIZE)
-
+    pygame.surface
     PLAYER = PlayerActor(
-        Kinematics([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], 0.9, [0, 0]),
+        MoveData([0, 0], [WINDOW_WIDTH/2, WINDOW_HEIGHT/2], [0, 0], 0.9),
         4, 8
     )
 
@@ -184,7 +201,7 @@ if __name__ == "__main__": # TODO refactor into function
                 sys.exit()
 
         if random.randint(1, 50) == 1:
-            ENEMIES.append(EnemyActor())
+            ENEMIES.append(EnemyActor(PLAYER))
 
 
         SCREEN.fill([0, 0, 0])
@@ -208,7 +225,7 @@ if __name__ == "__main__": # TODO refactor into function
         ENEMIES = non_colliding_enemies
 
         pygame.display.flip()
-
+        
         CLOCK.tick(FRAMERATE)  # make sure game runs at correct framerate
 
 
