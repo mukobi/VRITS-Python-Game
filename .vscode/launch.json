@@ -8,7 +8,7 @@
             "name": "Python: Terminal (integrated)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/Python Game/Game.py",
+            "program": "${workspaceFolder}/Polygonner/Game.py",
             "console": "integratedTerminal"
         }
     ]

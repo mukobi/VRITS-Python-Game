@@ -32,7 +32,7 @@ Enemy sizes scale with player size
 Score keeping system
 Title screen with instructions
 Game over screen
-Music and sound effects
+Music and sound effects (music from https://opengameart.org/content/stereotypical-90s-space-shooter-music)
 Enemy spawn rate increases with score
 Code refactored/renamed for scalability and PEP8 conformity
 Code documented with docstrings, comments
