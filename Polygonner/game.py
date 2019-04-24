@@ -16,7 +16,7 @@ import pygame
 # constants
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
-FRAMERATE = 60
+FRAMERATE = 80
 PLAYER_INIT_SIZE = 6
 PLAYER_INIT_SIDES = 6
 PLAYER_INIT_FRICTION = 0.875
@@ -172,6 +172,9 @@ class PlayerActor(PolygonActor):
             vert[1] = self.sprite_data.size / 2 * sin(angle) + self.move_data.position[1]
             points_to_check.append(vert)
         for point in points_to_check:
+            if (point[0] < 0 or point[0] >= WINDOW_WIDTH or 
+                point[1] < 0 or point[1] >= WINDOW_HEIGHT):
+                continue
             blue_code = self.screen.get_at((int(point[0]), int(point[1])))[2]
             if blue_code == ENEMY_BIG_COLOR_CODE:
                 # hit a bigger enemy
